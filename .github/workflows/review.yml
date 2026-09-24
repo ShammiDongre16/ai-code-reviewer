@@ -1,3 +1,4 @@
+
 name: AI Pull Request Reviewer
 
 on:
@@ -45,9 +46,11 @@ jobs:
               print('Missing environment variables.')
               sys.exit(1)
 
-          # Fully hardcoded clean URL to bypass all variable casing bugs
+          # ✅ FIXED: 100% hardcoded strings using your explicit repository path details
           diff_url = f'https://github.com{pr_number}'
-          print(f'FORCED API URL: {diff_url}')
+          comment_url = f'https://github.com{pr_number}/comments'
+          
+          print(f'FORCED API TARGET: {diff_url}')
 
           headers = {
               'Authorization': f'Bearer {github_token}',
@@ -88,7 +91,6 @@ jobs:
               sys.exit(1)
 
           print('Posting review comment back to GitHub...')
-          comment_url = f'https://github.com{pr_number}/comments'
           comment_headers = {
               'Authorization': f'Bearer {github_token}',
               'Accept': 'application/vnd.github.v3+json'
