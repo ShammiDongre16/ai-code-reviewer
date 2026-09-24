@@ -26,11 +26,75 @@ jobs:
         run: |
           pip install google-genai requests
 
-      - name: Run AI Review Script
+      - name: Run Embedded AI Reviewer
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
         run: |
-          python .github/workflows/review_script.py
+          python -c "
+          import os, sys, requests
+          from google import genai
+          from google.genai import types
+
+          gemini_key = os.getenv('GEMINI_API_KEY')
+          github_token = os.getenv('GITHUB_TOKEN')
+          repo = os.getenv('REPO_NAME')
+          pr_number = os.getenv('PR_NUMBER')
+
+          if not all([gemini_key, github_token, repo, pr_number]):
+              print('Missing environment variables.')
+              sys.exit(1)
+
+          # Hardcoded clean domain to bypass file path resolution bugs
+          diff_url = f'https://github.com{repo}/pulls/{pr_number}'
+          print(f'Fetching target API: {diff_url}')
+
+          headers = {
+              'Authorization': f'Bearer {github_token}',
+              'Accept': 'application/vnd.github.v3.diff'
+          }
+          response = requests.get(diff_url, headers=headers)
+          if response.status_code != 200:
+              print(f'Error fetching diff: {response.status_code}')
+              sys.exit(1)
+
+          pr_diff = response.text
+          if not pr_diff.strip():
+              print('No code changes detected.')
+              sys.exit(0)
+
+          print('Sending code to Gemini API...')
+          client = genai.Client(api_key=gemini_key)
+          system_instruction = (
+              'You are an expert DevOps engineer and Senior Software Developer. '
+              'Review the following Git diff code changes. Point out potential bugs, '
+              'security vulnerabilities, or bad habits. Provide constructive feedback '
+              'and code snippets for fixes where appropriate. Keep your response concise, '
+              'clean, and organized with markdown headers.'
+          )
+
+          try:
+              ai_response = client.models.generate_content(
+                  model='gemini-2.5-flash',
+                  contents=f'Please review this Git diff:\n\n{pr_diff}',
+                  config=types.GenerateContentConfig(
+                      system_instruction=system_instruction,
+                      temperature=0.2,
+                  )
+              )
+              review_text = ai_response.text
+          except Exception as e:
+              print(f'Gemini Error: {e}')
+              sys.exit(1)
+
+          print('Posting review comment back to GitHub...')
+          comment_url = f'https://github.com{repo}/issues/{pr_number}/comments'
+          comment_headers = {
+              'Authorization': f'Bearer {github_token}',
+              'Accept': 'application/vnd.github.v3+json'
+          }
+          requests.post(comment_url, headers=comment_headers, json={'body': f'### 🤖 AI Code Reviewer Report\n\n{review_text}'})
+          print('Successfully completed AI execution!')
+          "
