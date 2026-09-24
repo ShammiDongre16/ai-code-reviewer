@@ -16,7 +16,6 @@ def main():
         sys.exit(1)
 
     # 2. Correctly target the GitHub API endpoint
-    # Note: repo looks like "ShammiDongre16/ai-code-reviewer"
     diff_url = f"https://github.com{repo}/pulls/{pr_number}"
     print(f"Targeting API Endpoint: {diff_url}")
     
