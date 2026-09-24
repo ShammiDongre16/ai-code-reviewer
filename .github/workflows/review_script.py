@@ -15,17 +15,20 @@ def main():
         print("Missing required environment variables.")
         sys.exit(1)
 
-    # 2. Fetch the Pull Request diff (the code changes) from GitHub API
-    print(f"Fetching diff for PR #{pr_number}...")
+    # 2. Correctly target the GitHub API endpoint
+    # Note: repo looks like "ShammiDongre16/ai-code-reviewer"
+    diff_url = f"https://github.com{repo}/pulls/{pr_number}"
+    print(f"Targeting API Endpoint: {diff_url}")
+    
     headers = {
         "Authorization": f"Bearer {github_token}",
         "Accept": "application/vnd.github.v3.diff" 
     }
-    diff_url = f"https://github.com{repo}/pulls/{pr_number}"
+    
     response = requests.get(diff_url, headers=headers)
     
     if response.status_code != 200:
-        print(f"Failed to fetch PR diff: {response.status_code}")
+        print(f"Failed to fetch PR diff: {response.status_code} - {response.text}")
         sys.exit(1)
         
     pr_diff = response.text
