@@ -45,7 +45,7 @@ jobs:
               print('Missing environment variables.')
               sys.exit(1)
 
-          # ✅ Hardcoded URLs explicitly pointing to the GitHub API endpoint
+          # ✅ 100% CLEAN HARDCODED URLS
           diff_url = f'https://github.com{pr_number}'
           comment_url = f'https://github.com{pr_number}/comments'
           
