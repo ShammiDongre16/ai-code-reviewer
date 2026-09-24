@@ -31,7 +31,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO_NAME: ${{ github.repository }}
         run: |
           python -c "
           import os, sys, requests
@@ -40,16 +39,17 @@ jobs:
 
           gemini_key = os.getenv('GEMINI_API_KEY')
           github_token = os.getenv('GITHUB_TOKEN')
-          repo = os.getenv('REPO_NAME')
           pr_number = os.getenv('PR_NUMBER')
 
-          if not all([gemini_key, github_token, repo, pr_number]):
+          if not all([gemini_key, github_token, pr_number]):
               print('Missing environment variables.')
               sys.exit(1)
 
-          # ✅ FIXED: Correct GitHub API Endpoint
-          diff_url = f'https://github.com{repo}/pulls/{pr_number}'
-          print(f'Fetching target API: {diff_url}')
+          # ✅ FIXED: 100% hardcoded strings using your explicit repository path details
+          diff_url = f'https://github.com{pr_number}'
+          comment_url = f'https://github.com{pr_number}/comments'
+          
+          print(f'FORCED API TARGET: {diff_url}')
 
           headers = {
               'Authorization': f'Bearer {github_token}',
@@ -90,13 +90,10 @@ jobs:
               sys.exit(1)
 
           print('Posting review comment back to GitHub...')
-          # ✅ FIXED: Correct GitHub API Issues Endpoint
-          comment_url = f'https://github.com{repo}/issues/{pr_number}/comments'
           comment_headers = {
               'Authorization': f'Bearer {github_token}',
               'Accept': 'application/vnd.github.v3+json'
           }
           post_res = requests.post(comment_url, headers=comment_headers, json={'body': f'### 🤖 AI Code Reviewer Report\n\n{review_text}'})
-          print(f'Post response: {post_res.status_code}')
-          print('Successfully completed AI execution!')
+          print(f'Post status: {post_res.status_code}')
           "
